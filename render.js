@@ -23,10 +23,12 @@ async function main() {
     throw new Error('Отсутствуют или пусты секреты TELEGRAM_TOKEN или TELEGRAM_CHAT_ID в GitHub Secrets');
   }
 
-  // 2. Генерация строк таблицы
+  // 2. Генерация строк таблицы с правильной жирностью
+  const numRows = items.length;
   const rowsHtml = items.map((item, index) => {
-    const isYellow = (index === 0 || index === items.length - 1);
-    const bgStyle = isYellow ? 'background-color: #FEF3C7;' : 'background-color: #FFFFFF;';
+    const isFirstOrLast = (index === 0 || index === numRows - 1);
+    const bgStyle = isFirstOrLast ? 'background-color: #FEF3C7;' : 'background-color: #FFFFFF;';
+    const rowClass = isFirstOrLast ? 'row-bold' : 'row-normal';
 
     const valA = item.a !== undefined && item.a !== null ? String(item.a) : '';
     const valB = item.b !== undefined && item.b !== null ? String(item.b) : '';
@@ -34,16 +36,16 @@ async function main() {
     const valD = item.d !== undefined && item.d !== null ? String(item.d) : '';
 
     return `
-      <tr style="${bgStyle}">
+      <tr class="${rowClass}" style="${bgStyle}">
         <td class="col-a">${valA}</td>
-        <td class="col-bcd">${valB}</td>
-        <td class="col-bcd">${valC}</td>
-        <td class="col-bcd">${valD}</td>
+        <td class="col-b">${valB}</td>
+        <td class="col-c">${valC}</td>
+        <td class="col-d">${valD}</td>
       </tr>
     `;
   }).join('');
 
-  // 3. Шаблон HTML (динамическая высота без 1200px)
+  // 3. Шаблон HTML с точной настройкой ширины и жирности
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -53,60 +55,86 @@ async function main() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
           width: 1200px;
-          height: auto; /* Высота подстраивается под содержимое */
+          height: auto;
           background-color: #F8FAFC;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-          padding: 30px;
+          padding: 24px;
         }
         .container {
           width: 100%;
           background: #FFFFFF;
-          border-radius: 16px;
-          padding: 32px;
+          border-radius: 12px;
+          padding: 28px;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
           display: flex;
           flex-direction: column;
         }
-        /* ШАПКА С ЗАГОЛОВКОМ И ДАТОЙ */
+        /* ТЕМНО-СЕРЫЙ НЕЖИРНЫЙ ЗАГОЛОВОК */
         .header-box {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          border-bottom: 3px solid #3B82F6;
-          padding-bottom: 18px;
-          margin-bottom: 24px;
+          border-bottom: 2px solid #E2E8F0;
+          padding-bottom: 14px;
+          margin-bottom: 20px;
         }
         .title {
-          font-size: 38px;
-          font-weight: 800;
-          color: #0F172A;
+          font-size: 34px;
+          font-weight: 400; /* Нежирный */
+          color: #334155;  /* Темно-серый */
           letter-spacing: -0.5px;
         }
+        
         table {
           width: 100%;
           border-collapse: collapse;
+          table-layout: fixed;
         }
         td {
-          padding: 16px 20px;
+          padding: 14px 6px;
           border: 1px solid #E2E8F0;
           vertical-align: middle;
+          white-space: nowrap; /* Без переноса чисел на новую строку */
         }
         tr:first-child td {
           text-align: center !important;
         }
+
+        /* ПРОПОРЦИИ: А и С сделаны шире */
         .col-a {
-          width: 34%;
+          width: 38%;
           font-size: 24px;
-          font-weight: 700;
-          color: #0F172A;
           text-align: left;
+          padding-left: 16px; /* Отступ только у столбца A */
         }
-        .col-bcd {
-          width: 22%;
-          font-size: 26px;
-          font-weight: 600;
-          color: #1E293B;
+        .col-b {
+          width: 14%;
+          font-size: 24px;
           text-align: right;
+          padding-right: 10px;
+        }
+        .col-c {
+          width: 34%; /* Расширен под миллиарды */
+          font-size: 24px;
+          text-align: right;
+          padding-right: 10px;
+        }
+        .col-d {
+          width: 14%;
+          font-size: 24px;
+          text-align: right;
+          padding-right: 10px;
+        }
+
+        /* НАСТРОЙКА ЖИРНОСТИ */
+        .row-normal td {
+          font-weight: 400; /* Нежирный для B, C, D в обычных строках */
+          color: #334155;
+        }
+        .row-normal .col-a {
+          font-weight: 600; /* Столбец A выделен */
+          color: #0F172A;
+        }
+        .row-bold td {
+          font-weight: 700; /* Первая и последняя строки — полностью жирные */
+          color: #0F172A;
         }
       </style>
     </head>
@@ -123,7 +151,7 @@ async function main() {
     </html>
   `;
 
-  // 4. Запуск Puppeteer и создание динамического снимка
+  // 4. Запуск Puppeteer
   const browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome',
     headless: 'new',
@@ -134,13 +162,13 @@ async function main() {
   
   await page.setViewport({
     width: 1200,
-    height: 800, // Начальная глубина, Puppeteer сам снимет элемент целиком
+    height: 800,
     deviceScaleFactor: 2
   });
 
   await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
-  // Делаем снимок ТОЛЬКО карточки .container (высота выставится ровно по содержимому)
+  // Снимок динамического размера карточки
   const containerElement = await page.$('.container');
   const imageBuffer = await containerElement.screenshot({ type: 'png' });
 
