@@ -41,7 +41,7 @@ async function main() {
     throw new Error('Отсутствуют или пусты секреты TELEGRAM_TOKEN или TELEGRAM_CHAT_ID в GitHub Secrets');
   }
 
-  // 2. Генерация строк таблицы с разделением тысяч
+  // 2. Генерация строк таблицы
   const rowsHtml = items.map((item, index) => {
     const isYellow = (index === 0 || index === items.length - 1);
     const bgStyle = isYellow ? 'background-color: #FEF3C7;' : 'background-color: #FFFFFF;';
@@ -61,7 +61,7 @@ async function main() {
     `;
   }).join('');
 
-  // 3. Шаблон HTML (A — широкий, B,C,D — динамические без отступов)
+  // 3. Шаблон HTML (Адаптивный перенос в A, фиксированные числа в B, C, D)
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -102,7 +102,7 @@ async function main() {
         table {
           width: 100%;
           border-collapse: collapse;
-          table-layout: auto;
+          table-layout: fixed; /* Фиксированная раскладка для точного контроля ширины */
         }
         td {
           padding: 16px 20px;
@@ -114,17 +114,22 @@ async function main() {
           text-align: center !important;
         }
 
-        /* ТАБЛИЦА: Столбец A — широкий (40%), B, C, D — динамические */
+        /* СТОЛБЕЦ A: Корректный перенос длинного текста (более 37 символов) */
         .col-a {
-          width: 40%;
+          width: 37%;
           font-size: 24px;
           color: #0F172A;
           text-align: left;
           font-weight: normal;
-          white-space: nowrap;
+          white-space: normal;
+          word-break: break-word;
+          overflow-wrap: break-word;
+          line-height: 1.25;
         }
+
+        /* СТОЛБЦЫ B, C, D: Динамическая ширина для чисел без переносов строк */
         .col-bcd {
-          width: auto; /* Автоматическое динамическое распределение оставшегося места */
+          width: 21%;
           font-size: 26px;
           color: #1E293B;
           text-align: right;
@@ -146,7 +151,7 @@ async function main() {
     </html>
   `;
 
-  // 4. Запуск Puppeteer и создание динамического снимка
+  // 4. Запуск Puppeteer и создание снимка ВСЕГО содержимого
   const browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome',
     headless: 'new',
@@ -158,12 +163,12 @@ async function main() {
   await page.setViewport({
     width: 1200,
     height: 800,
-    deviceScaleFactor: 2 // Двойная плотность пикселей (Retina quality)
+    deviceScaleFactor: 2 // Высшее качество изображения (Retina 2x)
   });
 
   await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
-  // Делаем снимок строго по границам карточки .container
+  // Снимаем весь элемент .container без обрезания высоты
   const containerElement = await page.$('.container');
   const imageBuffer = await containerElement.screenshot({ type: 'png' });
 
