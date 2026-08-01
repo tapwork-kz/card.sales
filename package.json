@@ -1,0 +1,12 @@
+```json
+{
+  "name": "table-card-renderer",
+  "version": "1.0.0",
+  "description": "Render HTML table to PNG via Puppeteer and send to Telegram",
+  "main": "render.js",
+  "dependencies": {
+    "form-data": "^4.0.0",
+    "node-fetch": "^2.6.7",
+    "puppeteer": "^21.0.0"
+  }
+}
