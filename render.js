@@ -15,11 +15,13 @@ async function main() {
 
   const title = payload.title || 'Отчет';
   const items = payload.items || [];
-  const token = process.env.TELEGRAM_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  
+  // Очищаем токен и chatId от случайных пробелов или символов
+  const token = (process.env.TELEGRAM_TOKEN || '').trim();
+  const chatId = (process.env.TELEGRAM_CHAT_ID || '').trim();
 
   if (!token || !chatId) {
-    throw new Error('Отсутствуют секреты TELEGRAM_TOKEN или TELEGRAM_CHAT_ID');
+    throw new Error('Отсутствуют или пусты секреты TELEGRAM_TOKEN или TELEGRAM_CHAT_ID в GitHub Secrets');
   }
 
   // 2. Генерация строк таблицы с крупными шрифтами для мобильных экранов
@@ -42,7 +44,7 @@ async function main() {
     `;
   }).join('');
 
-  // 3. Шаблон HTML с крупным адаптивным стилем (1200x1200px)
+  // 3. Шаблон HTML (1200x1200px)
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -85,7 +87,6 @@ async function main() {
         tr:first-child td {
           text-align: center !important;
         }
-        /* КРУПНЫЙ ШРИФТ ДЛЯ ТЕЛЕФОНОВ */
         .col-a {
           width: 46%;
           font-size: 24px;
@@ -113,17 +114,18 @@ async function main() {
     </html>
   `;
 
-// Стало (используем готовый встроенный Chrome):
+  // 4. Запуск Puppeteer (встроенный Chrome + новый Headless режим)
   const browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome',
+    headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
-  
+
   const page = await browser.newPage();
   await page.setViewport({
     width: 1200,
     height: 1200,
-    deviceScaleFactor: 2 // Двойная плотность пикселей для идеальной четкости
+    deviceScaleFactor: 2
   });
 
   await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
@@ -131,7 +133,9 @@ async function main() {
   const imageBuffer = await page.screenshot({ type: 'png' });
   await browser.close();
 
-  // 5. Отправка изображения в Telegram API
+  // 5. Отправка изображения в Telegram API (абсолютный URL)
+  const telegramUrl = `https://api.telegram.org/bot${token}/sendPhoto`;
+
   const form = new FormData();
   form.append('chat_id', chatId);
   form.append('caption', `📊 <b>${title}</b>\n\nПолный отчет по сотрудникам.`);
@@ -141,7 +145,7 @@ async function main() {
     contentType: 'image/png'
   });
 
-  const response = await fetch(`[https://api.telegram.org/bot$](https://api.telegram.org/bot$){token}/sendPhoto`, {
+  const response = await fetch(telegramUrl, {
     method: 'POST',
     body: form
   });
