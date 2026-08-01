@@ -61,7 +61,7 @@ async function main() {
     `;
   }).join('');
 
-  // 3. Шаблон HTML (Calibri, без жирности, темно-серый заголовок, динамическая высота)
+  // 3. Шаблон HTML (A — широкий, B,C,D — динамические без отступов)
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -85,7 +85,7 @@ async function main() {
           display: flex;
           flex-direction: column;
         }
-        /* ШАПКА: Темно-серый заголовок, без жирности, с синей линией */
+        /* ШАПКА: Темно-серый заголовок, не жирный, с синей линией */
         .header-box {
           display: flex;
           align-items: center;
@@ -102,6 +102,7 @@ async function main() {
         table {
           width: 100%;
           border-collapse: collapse;
+          table-layout: auto;
         }
         td {
           padding: 16px 20px;
@@ -113,20 +114,22 @@ async function main() {
           text-align: center !important;
         }
 
-        /* ПРОПОРЦИИ СТОЛБЦОВ: Все столбцы (A, B, C, D) по 25% каждый */
+        /* ТАБЛИЦА: Столбец A — широкий (40%), B, C, D — динамические */
         .col-a {
-          width: 25%;
+          width: 40%;
           font-size: 24px;
           color: #0F172A;
           text-align: left;
           font-weight: normal;
+          white-space: nowrap;
         }
         .col-bcd {
-          width: 25%;
+          width: auto; /* Автоматическое динамическое распределение оставшегося места */
           font-size: 26px;
           color: #1E293B;
           text-align: right;
           font-weight: normal;
+          white-space: nowrap;
         }
       </style>
     </head>
@@ -143,7 +146,7 @@ async function main() {
     </html>
   `;
 
-  // 4. Запуск Puppeteer и снятие снимка контейнера
+  // 4. Запуск Puppeteer и создание динамического снимка
   const browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome',
     headless: 'new',
@@ -160,7 +163,7 @@ async function main() {
 
   await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
-  // Делаем кадрированный снимок только карточки .container
+  // Делаем снимок строго по границам карточки .container
   const containerElement = await page.$('.container');
   const imageBuffer = await containerElement.screenshot({ type: 'png' });
 
@@ -188,7 +191,7 @@ async function main() {
     throw new Error(`Telegram API Error: ${JSON.stringify(resJson)}`);
   }
 
-  console.log('✅ Отчет отлично сформирован и отправлен в Telegram!');
+  console.log('✅ Отчет успешно сформирован и отправлен в Telegram!');
 }
 
 main().catch(err => {
