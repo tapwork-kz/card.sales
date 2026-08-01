@@ -179,7 +179,7 @@ async function main() {
 
   const form = new FormData();
   form.append('chat_id', chatId);
-  form.append('caption', `📊 <b>${title}</b>\n\nПолный отчет по сотрудникам.`);
+  form.append('caption', `📊 <b>${title}</b>`);
   form.append('parse_mode', 'HTML');
   form.append('photo', imageBuffer, {
     filename: 'Schedule_Card.png',
