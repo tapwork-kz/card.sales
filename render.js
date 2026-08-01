@@ -113,11 +113,12 @@ async function main() {
     </html>
   `;
 
-  // 4. Запуск Puppeteer и создание снимка 1200x1200 (Retina 2x)
+// Стало (используем готовый встроенный Chrome):
   const browser = await puppeteer.launch({
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
-
+  
   const page = await browser.newPage();
   await page.setViewport({
     width: 1200,
