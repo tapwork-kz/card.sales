@@ -43,7 +43,7 @@ async function main() {
     `;
   }).join('');
 
-  // 3. Шаблон HTML с увеличенными столбцами B, C, D и заголовком
+  // 3. Шаблон HTML (динамическая высота без 1200px)
   const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -53,13 +53,9 @@ async function main() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
           width: 1200px;
-          height: 1200px;
+          height: auto; /* Высота подстраивается под содержимое */
           background-color: #F8FAFC;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
           padding: 30px;
         }
         .container {
@@ -71,7 +67,7 @@ async function main() {
           display: flex;
           flex-direction: column;
         }
-        /* ШАПКА C ЗАГОЛОВКОМ И ДАТОЙ */
+        /* ШАПКА С ЗАГОЛОВКОМ И ДАТОЙ */
         .header-box {
           display: flex;
           align-items: center;
@@ -86,7 +82,6 @@ async function main() {
           color: #0F172A;
           letter-spacing: -0.5px;
         }
-        
         table {
           width: 100%;
           border-collapse: collapse;
@@ -99,8 +94,6 @@ async function main() {
         tr:first-child td {
           text-align: center !important;
         }
-
-        /* ПРОПОРЦИИ СТОЛБЦОВ: B, C, D расширены */
         .col-a {
           width: 34%;
           font-size: 24px;
@@ -109,7 +102,7 @@ async function main() {
           text-align: left;
         }
         .col-bcd {
-          width: 22%; /* Увеличено с 18% до 22% */
+          width: 22%;
           font-size: 26px;
           font-weight: 600;
           color: #1E293B;
@@ -130,7 +123,7 @@ async function main() {
     </html>
   `;
 
-  // 4. Запуск Puppeteer
+  // 4. Запуск Puppeteer и создание динамического снимка
   const browser = await puppeteer.launch({
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome',
     headless: 'new',
@@ -138,15 +131,19 @@ async function main() {
   });
 
   const page = await browser.newPage();
+  
   await page.setViewport({
     width: 1200,
-    height: 1200,
+    height: 800, // Начальная глубина, Puppeteer сам снимет элемент целиком
     deviceScaleFactor: 2
   });
 
   await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
-  const imageBuffer = await page.screenshot({ type: 'png' });
+  // Делаем снимок ТОЛЬКО карточки .container (высота выставится ровно по содержимому)
+  const containerElement = await page.$('.container');
+  const imageBuffer = await containerElement.screenshot({ type: 'png' });
+
   await browser.close();
 
   // 5. Отправка в Telegram
